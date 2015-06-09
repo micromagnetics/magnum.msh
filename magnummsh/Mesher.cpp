@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with magnum.msh. If not, see <http://www.gnu.org/licenses/>.
 //
-// Last modified by Claas Abert, 2015-06-08
+// Last modified by Claas Abert, 2015-06-09
 
 #include "Mesher.h"
 
@@ -26,6 +26,7 @@
 #include <assert.h>
 
 #include <gmsh/Gmsh.h>
+#include <gmsh/OpenFile.h>
 #include <gmsh/GModel.h>
 #include <gmsh/GEntity.h>
 #include <gmsh/MVertex.h>
@@ -88,14 +89,34 @@ void Mesher::create_cuboid_geo(const dolfin::Array<double>& size, const dolfin::
 //-----------------------------------------------------------------------------
 void Mesher::read_file(const std::string name) {
   assert(sample_type == NONE);
-  model->load(name);
+  OpenProject(name);
+  model = GModel::current();
 
-  // retrieve all physical groups
-  std::map<int, std::vector<GEntity*> > groups[4];
-  model->getPhysicalGroups(groups);
-
+}
+//-----------------------------------------------------------------------------
+std::vector<int> Mesher::domain_dims() {
+  std::vector<int> dims(domain_count());
+  int i = 0;
+  for (GModel::piter pit = model->firstPhysicalName(); pit != model->lastPhysicalName(); pit++) {
+    dims[i]  = (*pit).first.first;
+    ++i;
+  }
+  return dims;
+}
+//-----------------------------------------------------------------------------
+std::vector<int> Mesher::domain_ids() {
+  std::vector<int> ids(domain_count());
+  int i = 0;
+  for (GModel::piter pit = model->firstPhysicalName(); pit != model->lastPhysicalName(); pit++) {
+    ids[i]  = (*pit).first.second;
+    ++i;
+  }
+  return ids;
+}
+//-----------------------------------------------------------------------------
+void Mesher::prepare_domains() {
   // handle simple mesh with just one volume and one surface
-  if (groups[2].size() <= 1 and groups[3].size() <= 1) {
+  if (model->noPhysicalGroups()) {
     // find faces if no domains defined
     model->deletePhysicalGroups();
     model->createTopologyFromMesh();
@@ -107,7 +128,10 @@ void Mesher::read_file(const std::string name) {
       sample_faces.push_back(*fit);
     }
 
-    (*(model->firstRegion()))->addPhysicalEntity(1);
+    // TODO THIS IS THE CULPRIT (MED IMPORT)
+    if (model->getNumRegions() > 0) {
+      (*(model->firstRegion()))->addPhysicalEntity(1);
+    }
   }
   // handle sophisticated meshes
   else {
@@ -126,10 +150,6 @@ void Mesher::read_file(const std::string name) {
     for (std::list<GFace*>::iterator fit = faces.begin(); fit != faces.end(); fit++) {
       sample_faces.push_back(*fit);
     }
-
-    // LEGACY CODE (requires outer boundary of sample to be defined as face with id "1")
-    // require face "1" to be defined
-    //assert(groups[2].find(1) != groups[2].end());
   }
 
   // retrieve box size

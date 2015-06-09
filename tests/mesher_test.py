@@ -49,6 +49,7 @@ class MesherTest(unittest.TestCase):
   def test_read_mesh_with_domains(self):
     mesher = Mesher()
     mesher.read_file("mesh/multidomain.msh")
+    mesher.prepare_domains()
     mesher.create_shell(1, n=(10,10,10), margin=0.1)
     mesh = mesher.mesh()
 
@@ -94,6 +95,13 @@ class MesherTest(unittest.TestCase):
 
     ds = Measure("ds", mesh)[MeshFunction("size_t", mesh, 2, mesh.domains())]
     self.assertAlmostEqual(4.0, assemble(Constant(1.0)*ds(4)))
+
+  def test_med_file(self):
+    mesher = Mesher()
+    mesher.read_file("mesh/test.med")
+
+    self.assertListEqual([2,2,3,3], list(mesher.domain_dims()))
+    self.assertListEqual([1,2,1,2], list(mesher.domain_ids()))
 
 if __name__ == '__main__':
     unittest.main()

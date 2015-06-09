@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with magnum.msh. If not, see <http://www.gnu.org/licenses/>.
 //
-// Last modified by Claas Abert, 2015-06-08
+// Last modified by Claas Abert, 2015-06-09
 
 #ifndef _MESHER_H_
 #define _MESHER_H_
@@ -66,6 +66,42 @@ namespace magnumfe {
     ///     name (std::string)
     ///         The filename.
     void read_file(const std::string name);
+
+    /// Returns the list of dimensions of the physical domains:
+    ///   2 means facet
+    ///   3 means volume
+    ///
+    /// *Returns*
+    ///   std::vector<int> the list of dimensions
+    std::vector<int> domain_dims();
+
+    /// Returns the list of IDs of the physical domains:
+    ///
+    /// *Returns*
+    ///   std::vector<int> the list of ids
+    std::vector<int> domain_ids();
+
+    /// Return the name of a particular physical domain
+    ///
+    /// *Arguments*
+    ///   dim (int)
+    ///     the dimension (2=facet, 3=volume)
+    ///   id (int)
+    ///     the id
+    /// *Returns*
+    ///   std::string
+    ///     the name of the domain
+    std::string domain_name(int dim, int id) { return model->getPhysicalName(dim, id); }
+
+    /// Returns the number of physical domains
+    ///
+    /// *Returns*
+    ///   int
+    ///     the number of physical domains
+    int domain_count() { return model->numPhysicalNames(); }
+
+    /// Prepares the physical domains for shell meshing
+    void prepare_domains();
 
     /// Write the mesh in a file (All filetypes of GMSH are
     /// supported).

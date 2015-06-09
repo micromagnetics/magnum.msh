@@ -19,6 +19,7 @@ import_array();
 %import "typemaps/numpy.i"
 %import "typemaps/array.i"
 %import "typemaps/std_map.i"
+%import "typemaps/std_vector.i"
 %import "typemaps/primitives.i"
 
 // Handle Strings
