@@ -143,7 +143,12 @@ void Mesher::prepare_domains() {
     for (GModel::riter rit = model->firstRegion(); rit != model->lastRegion(); rit++) {
       all_regions.push_back(*rit);
     }
+    char buf[20];
+    int saved_stdout = dup(1);
+    stdout = freopen("/dev/null" , "w" , stdout);
     GRegionCompound compound(model, 0, all_regions);
+    sprintf(buf, "/dev/fd/%d", saved_stdout);
+    stdout = freopen(buf, "w", stdout);
 
     std::list<GFace*> faces = compound.faces();
     for (std::list<GFace*>::iterator fit = faces.begin(); fit != faces.end(); fit++) {

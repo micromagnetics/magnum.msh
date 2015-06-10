@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with magnum.msh. If not, see <http://www.gnu.org/licenses/>.
 # 
-# Last modified by Claas Abert, 2015-06-09
+# Last modified by Claas Abert, 2015-06-10
 
 import argparse
 from magnummsh import *
@@ -41,7 +41,7 @@ def print_domain_info(mesher):
     print "%d domains found:" % mesher.domain_count()
     print "----------------------------------------"
     print "Type  | ID  | Name"
-    print "-------+--------------------------------"
+    print "------+---------------------------------"
     for dim, did in zip(mesher.domain_dims(), mesher.domain_ids()):
       name  = mesher.domain_name(dim, did)
       dtype = ""
