@@ -132,4 +132,5 @@ message (STATUS "Found Python ${PYTHON_VERSION}, will install at ${CMAKE_INSTALL
 install(TARGETS magnummsh DESTINATION lib)
 install(DIRECTORY site-packages/magnummsh DESTINATION "${PYTHON_SITE_MODULES}" PATTERN "site-packages/magnummsh/cpp.py site-packages/magnummsh/_cpp.so" EXCLUDE)
 install(FILES ${CMAKE_BINARY_DIR}/cpp.py ${CMAKE_BINARY_DIR}/_cpp.so DESTINATION "${PYTHON_SITE_MODULES}/magnummsh")
+install(PROGRAMS scripts/magnum-msh DESTINATION bin)
 install(CODE "execute_process(COMMAND python -m compileall ${CMAKE_INSTALL_PREFIX}/${PYTHON_SITE_MODULES}/magnummsh)")

@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with magnum.msh. If not, see <http://www.gnu.org/licenses/>.
 //
-// Last modified by Claas Abert, 2015-06-09
+// Last modified by Claas Abert, 2015-06-10
 
 #include "Mesher.h"
 
@@ -91,7 +91,7 @@ void Mesher::read_file(const std::string name) {
   assert(sample_type == NONE);
   OpenProject(name);
   model = GModel::current();
-
+  model->setFactory("Gmsh");
 }
 //-----------------------------------------------------------------------------
 std::vector<int> Mesher::domain_dims() {
@@ -128,7 +128,6 @@ void Mesher::prepare_domains() {
       sample_faces.push_back(*fit);
     }
 
-    // TODO THIS IS THE CULPRIT (MED IMPORT)
     if (model->getNumRegions() > 0) {
       (*(model->firstRegion()))->addPhysicalEntity(1);
     }
@@ -248,6 +247,7 @@ void Mesher::create_shell(int d, double margin, const dolfin::Array<int>& n, dou
     connection->meshAttributes.nbPointsTransfinite = d + 1;
     connection_edges.push_back(connection);
   }
+
 
   std::vector<GFace*> connection_faces;
   for (int i=0; i<12; ++i) {
