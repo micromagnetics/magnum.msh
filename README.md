@@ -26,7 +26,7 @@ Install Gmsh with headers and build dependencies
     $ sudo apt-get install libgmsh-dev g++ swig cmake
 
 ### Build and install
-To build magenum.msh with cmake do
+To build magnum.msh with cmake do
 
     $ cd /path/to/magnum.msh
     $ mkdir build

@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with magnum.msh. If not, see <http://www.gnu.org/licenses/>.
 # 
-# Last modified by Claas Abert, 2015-06-10
+# Last modified by Claas Abert, 2015-06-11
 
 import argparse
 from magnummsh import *
@@ -36,9 +36,9 @@ def print_domain_info(mesher):
 
   print ''
   if domain_count == 0:
-    print "No domains found"
+    print "No named domains found"
   else:
-    print "%d domains found:" % mesher.domain_count()
+    print "%d named domains found:" % mesher.domain_count()
     print "----------------------------------------"
     print "Type  | ID  | Name"
     print "------+---------------------------------"
