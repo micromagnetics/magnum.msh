@@ -63,6 +63,7 @@ class INPConverter(object):
     mesh = self.mesh()
     mat = MeshFunction('size_t', mesh, 3)
     mat.array()[:] = map(lambda x: x[1], self.elements)
+    self._num_materials = set(mat.array()[:])
     return mat
 
   def data(self, name='data'):
@@ -79,8 +80,27 @@ class INPConverter(object):
     assign(res, components)
     return res
 
-converter = INPConverter()
-converter.read_inp("multiple_materials.inp")
-File("mesh.pvd") << converter.mesh()
-File("data.pvd") << converter.data()
-File("domains.pvd") << converter.domains()
+  def print_stats(self):
+    print "Found Mesh:"
+    print "  Nodes:     %-10d" % len(self.nodes)
+    print "  Elements:  %-10d" % len(self.elements)
+    print "  Materials: %-10d" % len(self._num_materials)
+    print "  Node Data: %-10d" % (self.node_data.shape[1]-1)
+
+
+if __name__ == "__main__":
+  parser = argparse.ArgumentParser(prog='magnum-msh')
+  parser.add_argument('-d', '--domains', help='Output file for domain information')
+  parser.add_argument('-f', '--field', help='Output file for extracted data')
+  parser.add_argument('source', help='Input INP file')
+  parser.add_argument('target', help='Output mesh file(\'.pvd\', \'.xml\')')
+  args = parser.parse_args()
+
+  converter = INPConverter()
+  converter.read_inp(args.source)
+  File(args.target) << converter.mesh()
+  if args.domains:
+    File(args.domains) << converter.domains()
+  if args.field:
+    File(args.field) << converter.data()
+  converter.print_stats()
