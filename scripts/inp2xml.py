@@ -26,7 +26,7 @@ from StringIO import StringIO
 
 class INPConverter(object):
   def __init__(self):
-    pass
+    self._num_materials = None
 
   def read_inp(self, filename):
     # TODO: handle element data
@@ -46,7 +46,7 @@ class INPConverter(object):
       self.node_data = np.genfromtxt(StringIO(''.join(lines[NNodes+NElements+NNodeDataComponents+2:2*NNodes+NElements+NNodeDataComponents+2])), dtype=(float, float))
     self._need_update = True
 
-  def mesh(self):
+  def mesh(self, include_domains=True):
     if self._need_update == True:
       self._need_update = False
       editor = MeshEditor()
@@ -57,6 +57,11 @@ class INPConverter(object):
       map(lambda x: editor.add_vertex(x[0]-1, np.array([x[1], x[2], x[3]])), self.nodes)
       map(lambda x: editor.add_cell(x[0]-1, np.array([x[3]-1, x[4]-1, x[5]-1, x[6]-1], dtype=np.uintp)), self.elements)
       editor.close()
+
+      if include_domains == True:
+        d = self._mesh.domains()
+        d.init(3)
+        map(lambda i: d.set_marker((i, self.elements[i][1]), 3), range(self.elements.shape[0]))
     return self._mesh
 
   def domains(self):
@@ -80,8 +85,6 @@ class INPConverter(object):
     else:
       VV = VectorFunctionSpace(mesh, "CG", 1, self.node_data.shape[1]-1)
       res = Function(VV, name=name)
-      print res
-      print components
       assign(res, components)
       return res
 
@@ -89,7 +92,8 @@ class INPConverter(object):
     print "Found Mesh:"
     print "  Nodes:     %-10d" % len(self.nodes)
     print "  Elements:  %-10d" % len(self.elements)
-    print "  Materials: %-10d" % len(self._num_materials)
+    if self._num_materials is not None:
+      print "  Materials: %-10d" % len(self._num_materials)
     print "  Node Data: %-10d" % (self.node_data.shape[1]-1)
 
 
