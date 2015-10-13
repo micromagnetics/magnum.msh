@@ -2,7 +2,7 @@
 
 # Copyright (C) 2011-2015 Florian Bruckner
 #
-# This file is part of magnum.msh. 
+# This file is part of magnum.msh.
 #
 # magnum.msh is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -13,11 +13,11 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with magnum.msh. If not, see <http://www.gnu.org/licenses/>.
-# 
-# Last modified by Claas Abert, 2015-06-11
+#
+# Last modified by Florian Bruckner, 2015-10-13
 
 import argparse
 from dolfin import *
@@ -25,7 +25,7 @@ import numpy as np
 from StringIO import StringIO
 
 class INPConverter(object):
-  def __init__(self): 
+  def __init__(self):
     pass
 
   def read_inp(self, filename):
@@ -36,13 +36,13 @@ class INPConverter(object):
       NNodes, NElements, NodeData, ElementData, TensorData = [int(x) for x in lines[0].split()]
       self.nodes = np.genfromtxt(StringIO(''.join(lines[1:NNodes+1])), dtype=(int, float, float, float))
       self.elements = np.genfromtxt(StringIO(''.join(lines[NNodes+1:NNodes+NElements+1])), dtype=(int, int, np.dtype((str, 10)), int, int, int, int))
-      
+
       X = [int(x) for x in lines[NNodes+NElements+1].split()]
       NNodeDataComponents = X[0]
       NodeDataComponenetSizes = X[1:]
       NodeDataSize = sum(NodeDataComponenetSizes)
       NodeDataTags = [lines[i].split(',')[0] for i in range(NNodes+NElements+2,NNodes+NElements+NNodeDataComponents+2)]
-      
+
       self.node_data = np.genfromtxt(StringIO(''.join(lines[NNodes+NElements+NNodeDataComponents+2:2*NNodes+NElements+NNodeDataComponents+2])), dtype=(float, float))
     self._need_update = True
 
@@ -52,8 +52,8 @@ class INPConverter(object):
       editor = MeshEditor()
       self._mesh = Mesh()
       editor.open(self._mesh, 3, 3)
-      editor.init_vertices(len(self.nodes))   
-      editor.init_cells(len(self.elements))   
+      editor.init_vertices(len(self.nodes))
+      editor.init_cells(len(self.elements))
       map(lambda x: editor.add_vertex(x[0]-1, np.array([x[1], x[2], x[3]])), self.nodes)
       map(lambda x: editor.add_cell(x[0]-1, np.array([x[3]-1, x[4]-1, x[5]-1, x[6]-1], dtype=np.uintp)), self.elements)
       editor.close()
@@ -74,11 +74,16 @@ class INPConverter(object):
       u = Function(V)
       u.vector()[vertex_to_dof_map(V)] = self.node_data[:, i].copy()
       components.append(u)
-     
-    VV = VectorFunctionSpace(mesh, "CG", 1, self.node_data.shape[1]-1)
-    res = Function(VV, name=name)
-    assign(res, components)
-    return res
+
+    if len(components) == 1:
+      return u
+    else:
+      VV = VectorFunctionSpace(mesh, "CG", 1, self.node_data.shape[1]-1)
+      res = Function(VV, name=name)
+      print res
+      print components
+      assign(res, components)
+      return res
 
   def print_stats(self):
     print "Found Mesh:"
