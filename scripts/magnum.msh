@@ -74,7 +74,7 @@ print_domain_info(mesher)
 
 # Write mesh file
 sys.stdout.write("Write %s ... " % args.target)
-if args.target.split('.')[-1].lower() in ['xml', 'pvd']:
+if args.target.split('.')[-1].lower() in ['xml', 'pvd', 'gz']:
   File(args.target) << mesh
 else:
   mesher.write_file(args.target)
