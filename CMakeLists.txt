@@ -134,4 +134,5 @@ install(DIRECTORY site-packages/magnummsh DESTINATION "${PYTHON_SITE_MODULES}" P
 install(FILES ${CMAKE_BINARY_DIR}/cpp.py ${CMAKE_BINARY_DIR}/_cpp.so DESTINATION "${PYTHON_SITE_MODULES}/magnummsh")
 install(PROGRAMS scripts/magnum.msh DESTINATION bin)
 install(PROGRAMS scripts/inp2magnum DESTINATION bin)
+install(PROGRAMS scripts/magnum2inp DESTINATION bin)
 install(CODE "execute_process(COMMAND python -m compileall ${CMAKE_INSTALL_PREFIX}/${PYTHON_SITE_MODULES}/magnummsh)")
