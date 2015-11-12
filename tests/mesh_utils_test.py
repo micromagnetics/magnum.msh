@@ -13,6 +13,7 @@ class MeshUtilsTest(unittest.TestCase):
     mt.add(mesh1)
     mt.add(mesh2)
 
+    File("mesh.pvd") << mt.mesh()
     self.assertEqual(mt.mesh().num_cells(), 30)
     self.assertEqual(mt.mesh().num_vertices(), 26)
 
