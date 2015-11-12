@@ -20,58 +20,10 @@
 # Last modified by Florian Bruckner, 2015-10-13
 
 import argparse
-from dolfin import *
-import numpy as np
-from StringIO import StringIO
-
-class INPWriter(object):
-  def __init__(self, filename, fieldfile=None):
-    self._mesh = Mesh(filename)
-    self._domains = MeshFunction('size_t', self._mesh, 3, self._mesh.domains())
-    if fieldfile is None:
-      self._fields = None
-    else:
-      V = FunctionSpace(self._mesh, "CG", 1)
-      VV = VectorFunctionSpace(self._mesh, "CG", 1)
-      u, v, w = Function(V), Function(V), Function(V)
-      assign([u,v,w], Function(VV, fieldfile))
-      self._fields = (u, v, w)
-      self._map = vertex_to_dof_map(V)
-
-  def write_inp(self, filename):
-    with open(filename, "w") as f:
-      # NNodes, NElements, NodeData, ElementData, TensorData
-      N = self._mesh.num_vertices()
-      NE = self._mesh.num_cells()
-      f.write("%d %d %d %d %d\n" % (N, NE, 0 if self._fields is None else 1, 0, 0))
-      nodes = np.hstack((np.arange(1,N+1).reshape(N,1), self._mesh.coordinates()))
-      np.savetxt(f, nodes, fmt="%8d %.15e %.15e %.15e")
-      if self._mesh.domains().num_marked(3) != 0:
-        self._mat = self._domains.array()
-      else:
-        self._mat = np.repeat(1, NE)
-      elements = np.hstack((np.arange(1,NE+1).reshape(NE,1), self._mat.reshape(NE,1), self._mesh.cells()+1))
-      np.savetxt(f, elements, fmt="%8d %4d tet %8d %8d %8d %8d")
-      if self._fields is not None:
-        f.write("1 3\n")
-        f.write("data, none\n")
-
-        field = np.hstack((np.arange(1,N+1).reshape(N,1),
-                           self._fields[0].vector()[self._map].reshape(N,1),
-                           self._fields[1].vector()[self._map].reshape(N,1),
-                           self._fields[2].vector()[self._map].reshape(N,1)))
-        np.savetxt(f, field, fmt="%8d %.15e %.15e %.15e")
-
-  def print_stats(self):
-    print "Found Mesh:"
-    print "  Nodes:     %-10d" % self._mesh.num_vertices()
-    print "  Elements:  %-10d" % self._mesh.num_cells()
-    print "  Materials: %-10d" % len(np.unique(self._mat))
-    #print "  Node Data: %-10d" % (self.node_data.shape[1]-1)
-
+from magnummsh import *
 
 if __name__ == "__main__":
-  parser = argparse.ArgumentParser(prog='magnum-msh')
+  parser = argparse.ArgumentParser(prog='magnum2inp')
   parser.add_argument('-f', '--field', help='Input file for additional vector data')
   parser.add_argument('source', help='Input XML file')
   parser.add_argument('target', help='Output INP file')
