@@ -1,7 +1,8 @@
 import unittest
 
 testmodules = [
-    'mesher_test'
+    'mesher_test',
+    'mesh_utils_test'
     ]
 
 suite = unittest.TestSuite()
