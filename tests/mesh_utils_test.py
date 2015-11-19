@@ -60,6 +60,8 @@ class MeshUtilsTest(unittest.TestCase):
     self.assertEqual(mt.mesh().num_cells(), 30)
     self.assertEqual(mt.mesh().num_vertices(), 26)
 
+    mt = MeshTool()
+    mt.add(mesh2, domain_id=1)
 
 if __name__ == '__main__':
     unittest.main()
