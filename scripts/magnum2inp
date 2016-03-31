@@ -32,7 +32,7 @@ if __name__ == "__main__":
   mesh = Mesh(args.source)
   if args.field is not None:
     VV = VectorFunctionSpace(mesh, "CG", 1)
-    field = Function(VV, fieldfile)
+    args.field = Function(VV, args.field)
 
   writer = INPWriter(mesh, args.field)
   # TODO: implement read_data(field_file)
