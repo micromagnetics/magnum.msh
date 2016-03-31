@@ -34,7 +34,7 @@ if __name__ == "__main__":
     VV = VectorFunctionSpace(mesh, "CG", 1)
     field = Function(VV, fieldfile)
 
-  writer = INPWriter(mesh, field)
+  writer = INPWriter(mesh, args.field)
   # TODO: implement read_data(field_file)
   writer.write_inp(args.target)
   writer.print_stats()
