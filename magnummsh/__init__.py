@@ -2,7 +2,6 @@
 
 from __future__ import absolute_import 
 
-import magnummsh.cpp as cpp
-from magnummsh.mesher import *
+from magnummsh.gmsh_utils import *
 from magnummsh.inp_utils import *
 from magnummsh.mesh_utils import *

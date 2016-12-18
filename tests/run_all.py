@@ -1,7 +1,6 @@
 import unittest
 
 testmodules = [
-    'mesher_test',
     'mesh_utils_test',
     'inp_utils_test'
     ]

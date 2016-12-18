@@ -25,57 +25,22 @@ from dolfin import File
 import sys
 
 parser = argparse.ArgumentParser(prog='magnum-msh')
-parser.add_argument('-s', '--shell', help='Create cuboid shell with given discretization, e.g. 1x10x10x10')
-parser.add_argument('-m', '--shell-margin', default=1.0, help='Margin between sample and inner shell boundary')
+#parser.add_argument('-s', '--shell', help='Create cuboid shell with given discretization, e.g. 1x10x10x10')
+#parser.add_argument('-m', '--shell-margin', default=1.0, help='Margin between sample and inner shell boundary')
 parser.add_argument('source', help='Input mesh file')
 parser.add_argument('target', help='Output mesh file')
 args = parser.parse_args()
 
-def print_domain_info(mesher):
-  domain_count = mesher.domain_count()
-
-  print ''
-  if domain_count == 0:
-    print "No named domains found"
-  else:
-    print "%d named domains found:" % mesher.domain_count()
-    print "----------------------------------------"
-    print "Type  | ID  | Name"
-    print "------+---------------------------------"
-    for dim, did in zip(mesher.domain_dims(), mesher.domain_ids()):
-      name  = mesher.domain_name(dim, did)
-      dtype = ""
-      if dim == 2:
-        dtype = "facet"
-      elif dim == 3:
-        dtype = "cell "
-      print "%s | % 3d | %s" % (dtype, did, name)
-  print ''
-
-# read mesh file
-mesher = Mesher()
-
+# Read mesh file
 sys.stdout.write("Read %s ... " % args.source)
-mesher.read_file(args.source)
+#extension = args.source.split('.')[-1].lower()
+reader = GmshReader(args.source)
+mesh = reader.mesh()
 print "done"
 
-# create shell if required
-if args.shell is not None:
-  sys.stdout.write("Create shell ... ")
-  n      = map(lambda x: int(x), args.shell.split("x"))
-  margin = float(args.shell_margin)
-  mesher.prepare_domains()
-  mesher.create_shell(n[0], n=n[1:], margin=margin)
-  print "done"
-
-mesh = mesher.mesh()
-
-print_domain_info(mesher)
+reader.print_domain_info()
 
 # Write mesh file
 sys.stdout.write("Write %s ... " % args.target)
-if args.target.split('.')[-1].lower() in ['xml', 'pvd', 'gz']:
-  File(args.target) << mesh
-else:
-  mesher.write_file(args.target)
+File(args.target) << mesh
 print "done"
