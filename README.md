@@ -9,31 +9,24 @@ Installation
 magnum.msh requires the following software/libraries to be installed:
 
 * FEniCS >= 1.5
-* Gmsh >= 2.8.0 (headers and library)
-* CMake >= 2.8
-* SWIG >= 2.0
-* G++ >= 4.0
+* Gmsh Python wrappers>= 2.8.0 
 
-#### Install dependencies in Ubuntu 14.04
+#### Install dependencies in Ubuntu 16.04
 Install FEniCS
 
     $ sudo add-apt-repository ppa:fenics-packages/fenics
     $ sudo apt-get update
     $ sudo apt-get install fenics
 
-Install Gmsh with headers and build dependencies
+Install Gmsh Python wrappers
 
-    $ sudo apt-get install libgmsh-dev g++ swig cmake
+    $ sudo apt-get install python-gmsh
 
-### Build and install
-To build magnum.msh with cmake do
+### Install
+To install magnum.msh with setup tools do
 
     $ cd /path/to/magnum.msh
-    $ mkdir build
-    $ cd build
-    $ cmake ..
-    $ make
-    $ sudo make install
+    $ sudo python setup.py install
 
 License and Disclaimer
 ----------------------
