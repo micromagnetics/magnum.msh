@@ -18,6 +18,7 @@ class GmshReader(object):
   def __init__(self, filename):
     # suppress loggin
     gp.Msg_SetVerbosity(0)
+    gp.GmshSetOption("Mesh", "Algorithm3D", 4.) # Frontal Algorithm
 
     # load GMSH model
     gp.GmshOpenProject(filename)
@@ -158,12 +159,12 @@ class GmshReader(object):
         face.addPhysicalEntity(1)
         sample_faces.push_back(face)
 
-#      if self._model.getNumRegions() > 0:
-#        (*(model.firstRegion())).addPhysicalEntity(1);
+      for region in self._model.bindingsGetRegions():
+        region.addPhysicalEntity(1)
     else: # handle sophisticated meshes
       # automatically retrieve outer faces of sample for meshing of shell
       print "SOF"
-#      # TODO: handle holes
+      # TODO: handle holes
 #      model.createTopologyFromMesh();
 #      model.removeDuplicateMeshVertices(1e-18);
 #
@@ -184,14 +185,72 @@ class GmshReader(object):
 #      }
 #    }
 #
-    # retrieve box size
     bounds = self._model.bounds()
-    sample_size = [ max(np.fabs(bounds.min().x()), np.fabs(bounds.max().x())),
-                    max(np.fabs(bounds.min().y()), np.fabs(bounds.max().y())),
-                    max(np.fabs(bounds.min().z()), np.fabs(bounds.max().z()))
-                  ]
+    sample_size = np.array([ max(np.fabs(bounds.min().x()), np.fabs(bounds.max().x())),
+                             max(np.fabs(bounds.min().y()), np.fabs(bounds.max().y())),
+                             max(np.fabs(bounds.min().z()), np.fabs(bounds.max().z()))
+                           ])
 
     return sample_faces, sample_size
+
+  def create_shell(self, d, margin, n, shell_progression=1.0):
+    # retrieve box size, add margin and create inner cuboid
+    sample_faces, sample_size = self._prepare_domains()
+    size = sample_size + margin
+    inner_vertices, inner_edges, inner_faces = self._create_cuboid_geo(size, n)
+
+    # retrieve shell width create outer cuboid
+    shell_width = min(sample_size) + margin
+    size = sample_size + shell_width
+    outer_vertices, outer_edges, outer_faces = self._create_cuboid_geo(size, n)
+
+    # setup connections between cuboids
+    connection_edges = gp.GEdgeVector()
+    for i in range(8):
+      connection = self._model.addLine(inner_vertices[i], outer_vertices[i])
+      connection.setTransfinite(nbPointsTransfinite=d+1, typeTransfinite=1, coeffTransfinite=shell_progression)
+      connection_edges.push_back(connection)
+
+    connection_faces = gp.GFaceVector()
+    for i in range(12):
+      a = gp.GEdgeVector()
+      a.push_back(inner_edges[i])
+      a.push_back(connection_edges[_vertex_data[i][0]])
+      a.push_back(outer_edges[i])
+      a.push_back(connection_edges[_vertex_data[i][1]])
+      aa = gp.GEdgeVectorVector()
+      aa.append(a)
+      face = self._model.addPlanarFace(aa)
+      face.setTransfinite()
+      connection_faces.push_back(face)
+
+    # add air region
+    faces = gp.GFaceVectorVector()
+    faces.push_back(inner_faces)
+    faces.push_back(sample_faces)
+    air_region = self._model.addVolume(faces)
+    air_region.addPhysicalEntity(1000)
+
+    # shell
+    shell_regions = gp.GRegionVector()
+    for i in range(6):
+      a = gp.GFaceVector()
+      a.push_back(inner_faces[i])
+      a.push_back(outer_faces[i])
+      for j in range(4):
+        a.push_back(connection_faces[_face_data[i][j]]);
+      aa = gp.GFaceVectorVector()
+      aa.push_back(a)
+      region = self._model.addVolume(aa)
+      region.setTransfinite()
+      shell_regions.push_back(region);
+
+    for i in range(6):
+      # i/2+2 leads to 1001, 1002, 1003 for x, y, z transformation area
+      shell_regions[i].addPhysicalEntity(i/2+1001)
+
+    self._model.mesh(3)
+    self._model.save("shell.msh")
 
   def create_cuboid(self, size, n):
     sample_vertices, sample_edges, sample_faces = self._create_cuboid_geo(size, n)
@@ -205,5 +264,6 @@ class GmshReader(object):
     sample_region.setTransfinite()
     sample_region.addPhysicalEntity(1)
     self._model.mesh(3)
+    self._model.writeGEO("test.geo")
     self._model.save("test.msh")
 
