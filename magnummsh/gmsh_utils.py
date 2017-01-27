@@ -18,7 +18,7 @@ class GmshReader(object):
   def __init__(self, filename):
     # suppress loggin
     gp.Msg_SetVerbosity(0)
-    gp.GmshSetOption("Mesh", "Algorithm3D", 4.) # Frontal Algorithm
+    gp.GmshSetOption("Mesh", "Algorithm3D", 4.) # (1=Delaunay, 4=Frontal, 5=Frontal Delaunay, 6=Frontal Hex, 7=MMG3D, 9=R-tree)
 
     # load GMSH model
     gp.GmshOpenProject(filename)
@@ -149,9 +149,10 @@ class GmshReader(object):
 
   def _prepare_domains(self):
     if self._model.noPhysicalGroups(): # handle simple mesh with just one volume and one surface
-      self._model.deletePhysicalGroups();
-      self._model.createTopologyFromMesh();
-      self._model.removeDuplicateMeshVertices(1e-18);
+### following line not needed (but require algorithm3D=4 if uncommented)
+#      self._model.deletePhysicalGroups();
+#      self._model.createTopologyFromMesh();
+#      self._model.removeDuplicateMeshVertices(1e-18);
 
       # load entities of sample (edges, vertices, region)
       sample_faces = gp.GFaceVector()
@@ -163,33 +164,26 @@ class GmshReader(object):
         region.addPhysicalEntity(1)
     else: # handle sophisticated meshes
       # automatically retrieve outer faces of sample for meshing of shell
-      print "SOF"
       # TODO: handle holes
-#      model.createTopologyFromMesh();
-#      model.removeDuplicateMeshVertices(1e-18);
-#
-#      std::vector<GRegion*> all_regions;
-#      for (GModel::riter rit = model.firstRegion(); rit != model.lastRegion(); rit++) {
-#        all_regions.push_back(*rit);
-#      }
-#      char buf[20];
-#      int saved_stdout = dup(1);
-#      stdout = freopen("/dev/null" , "w" , stdout);
-#      GRegionCompound compound(model, 0, all_regions);
-#      sprintf(buf, "/dev/fd/%d", saved_stdout);
-#      stdout = freopen(buf, "w", stdout);
-#
-#      std::list<GFace*> faces = compound.faces();
-#      for (std::list<GFace*>::iterator fit = faces.begin(); fit != faces.end(); fit++) {
-#        sample_faces.push_back(*fit);
-#      }
-#    }
-#
+      #self._model.createTopologyFromMesh();
+      #self._model.removeDuplicateMeshVertices(1e-18);
+
+      all_regions = gp.GRegionVector()
+      for region in self._model.bindingsGetRegions():
+        all_regions.push_back(region)
+      compound = gp.GRegionCompound(self._model, 0, all_regions)
+
+      sample_faces = gp.GFaceVector()
+      for face in compound.bindingsGetFaces():
+        face.addPhysicalEntity(1)
+        sample_faces.push_back(face)
+
     bounds = self._model.bounds()
     sample_size = np.array([ max(np.fabs(bounds.min().x()), np.fabs(bounds.max().x())),
                              max(np.fabs(bounds.min().y()), np.fabs(bounds.max().y())),
                              max(np.fabs(bounds.min().z()), np.fabs(bounds.max().z()))
                            ])
+    print sample_size
 
     return sample_faces, sample_size
 
@@ -251,6 +245,7 @@ class GmshReader(object):
 
     self._model.mesh(3)
     self._model.save("shell.msh")
+    self._model.writeGEO("shell.geo")
 
   def create_cuboid(self, size, n):
     sample_vertices, sample_edges, sample_faces = self._create_cuboid_geo(size, n)
