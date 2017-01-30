@@ -1,18 +1,28 @@
+#!/usr/bin/python
+
+# Copyright (C) 2016-2017 Claas Abert, Florian Bruckner
+#
+# This file is part of magnum.msh.
+#
+# magnum.msh is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# magnum.msh is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with magnum.msh. If not, see <http://www.gnu.org/licenses/>.
+#
+# Last modified by Florian Bruckner, 2017-01-27
+
 import gmshpy as gp
 import dolfin as df
 import numpy as np
-
-_vertex_data = [
-  [0,1],[1,3],[3,2],[2,0],
-  [4,5],[5,7],[7,6],[6,4],
-  [0,4],[1,5],[2,6],[3,7]
-  ]
-
-_face_data = [
-  [0, 1, 2, 3],[4, 5, 6, 7],
-  [0, 9, 4, 8],[10, 6,11,2],
-  [8, 7,10, 3],[9, 5,11, 1]
-  ]
+import os
 
 class GmshReader(object):
   def __init__(self, filename):
@@ -21,8 +31,11 @@ class GmshReader(object):
     gp.GmshSetOption("Mesh", "Algorithm3D", 4.) # (1=Delaunay, 4=Frontal, 5=Frontal Delaunay, 6=Frontal Hex, 7=MMG3D, 9=R-tree)
 
     # load GMSH model
+    if not os.path.isfile(filename):
+      raise IOError("No such file or directory: '%s'" % filename)
     gp.GmshOpenProject(filename)
     self._model = gp.GModel.current()
+    self._model.setFactory("Gmsh")
 
     # init attributes
     self._physical_cell_ids = None
@@ -149,42 +162,42 @@ class GmshReader(object):
 
   def _prepare_domains(self):
     if self._model.noPhysicalGroups(): # handle simple mesh with just one volume and one surface
-### following line not needed (but require algorithm3D=4 if uncommented)
-#      self._model.deletePhysicalGroups();
-#      self._model.createTopologyFromMesh();
-#      self._model.removeDuplicateMeshVertices(1e-18);
-
       # load entities of sample (edges, vertices, region)
+      #self._model.createTopologyFromMesh()
+      #self._model.removeDuplicateMeshVertices(1e-18);
+      faces = self._model.bindingsGetFaces()
+      if len(faces) == 0:
+        raise RuntimeError("GmshModel: No faces found (maybe createTopologyFromMesh is needed)!")
       sample_faces = gp.GFaceVector()
-      for face in self._model.bindingsGetFaces():
-        face.addPhysicalEntity(1)
-        sample_faces.push_back(face)
+      for f in faces:
+        f.addPhysicalEntity(1)
+        sample_faces.push_back(f)
 
       for region in self._model.bindingsGetRegions():
         region.addPhysicalEntity(1)
     else: # handle sophisticated meshes
       # automatically retrieve outer faces of sample for meshing of shell
-      # TODO: handle holes
       #self._model.createTopologyFromMesh();
       #self._model.removeDuplicateMeshVertices(1e-18);
-
+      # TODO: handle holes
       all_regions = gp.GRegionVector()
       for region in self._model.bindingsGetRegions():
         all_regions.push_back(region)
       compound = gp.GRegionCompound(self._model, 0, all_regions)
+      faces = compound.bindingsGetFaces()
+      if len(faces) == 0:
+        raise RuntimeError("GmshModel: No faces found (maybe createTopologyFromMesh is needed)!")
 
       sample_faces = gp.GFaceVector()
-      for face in compound.bindingsGetFaces():
-        face.addPhysicalEntity(1)
-        sample_faces.push_back(face)
+      for f in faces:
+        #f.addPhysicalEntity(1)
+        sample_faces.push_back(f)
 
     bounds = self._model.bounds()
     sample_size = np.array([ max(np.fabs(bounds.min().x()), np.fabs(bounds.max().x())),
                              max(np.fabs(bounds.min().y()), np.fabs(bounds.max().y())),
                              max(np.fabs(bounds.min().z()), np.fabs(bounds.max().z()))
                            ])
-    print sample_size
-
     return sample_faces, sample_size
 
   def create_shell(self, d, margin, n, shell_progression=1.0):
@@ -261,4 +274,16 @@ class GmshReader(object):
     self._model.mesh(3)
     self._model.writeGEO("test.geo")
     self._model.save("test.msh")
+
+_vertex_data = [
+  [0,1],[1,3],[3,2],[2,0],
+  [4,5],[5,7],[7,6],[6,4],
+  [0,4],[1,5],[2,6],[3,7]
+  ]
+
+_face_data = [
+  [0, 1, 2, 3],[4, 5, 6, 7],
+  [0, 9, 4, 8],[10, 6,11,2],
+  [8, 7,10, 3],[9, 5,11, 1]
+  ]
 
