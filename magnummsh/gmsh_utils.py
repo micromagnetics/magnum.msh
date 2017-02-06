@@ -19,13 +19,20 @@
 #
 # Last modified by Florian Bruckner, 2017-01-27
 
-import gmshpy as gp
+try:
+  import gmshpy as gp
+except Exception as e:
+  _gmshpy_found = False
+  _gmshpy_exeption = e
+
 import dolfin as df
 import numpy as np
 import os
 
 class GmshReader(object):
   def __init__(self, filename):
+    if not _gmshpy_found: raise _gmshpy_exeption
+
     # suppress loggin
     gp.Msg_SetVerbosity(0)
     gp.GmshSetOption("Mesh", "Algorithm3D", 4.) # (1=Delaunay, 4=Frontal, 5=Frontal Delaunay, 6=Frontal Hex, 7=MMG3D, 9=R-tree)
