@@ -9,5 +9,5 @@ setup(name='magnummsh',
       author_email='claas.abert@tuwien.ac.at, florian.bruckner@tuwien.ac.at',
       url='http://github.com/micromagnetics/magnum.msh',
       packages=['magnummsh'],
-      scripts=['scripts/magnum.msh']
+      scripts=['scripts/magnum.msh', 'scripts/inp2magnum', 'scripts/magnum2inp']
      )
