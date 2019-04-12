@@ -20,10 +20,11 @@
 # Last modified by Florian Bruckner, 2017-01-27
 
 try:
-  import gmshpy as gp
+  import gmsh
+  _gmsh_found = True
 except Exception as e:
-  _gmshpy_found = False
-  _gmshpy_exeption = e
+  _gmsh_found = False
+  _gmsh_exeption = e
 
 import dolfin as df
 import numpy as np
@@ -31,20 +32,14 @@ import os
 
 class GmshReader(object):
   def __init__(self, filename):
-    if not _gmshpy_found: raise _gmshpy_exeption
+    if not _gmsh_found: raise _gmsh_exeption
 
     # suppress loggin
-    gp.Msg_SetVerbosity(0)
-    gp.GmshSetOption("Mesh", "Algorithm3D", 4.) # (1=Delaunay, 4=Frontal, 5=Frontal Delaunay, 6=Frontal Hex, 7=MMG3D, 9=R-tree)
-
-    # load GMSH model
     if not os.path.isfile(filename):
       raise IOError("No such file or directory: '%s'" % filename)
-    gp.GmshOpenProject(filename)
-    self._model = gp.GModel.current()
-    self._model.setFactory("Gmsh")
-
-    # init attributes
+    gmsh.initialize()
+    gmsh.open(filename)
+    self._model = gmsh.model
     self._physical_cell_ids = None
     self._physical_face_ids = None
 
@@ -53,66 +48,58 @@ class GmshReader(object):
     mesh = df.Mesh()
     mesh_editor = df.MeshEditor()
     mesh_editor.open(mesh, "tetrahedron", 3, 3);
-    mesh_editor.init_vertices(self._model.getNumMeshVertices())
 
     # prepare container for physical IDs
     self._physical_cell_ids = set()
     self._physical_face_ids = set()
 
     # get mesh vertices
-    entities = gp.GEntityVector()
-    self._model.getEntities(entities)
-
-    for entity in entities:
-      for vertex in entity.mesh_vertices:
-        mesh_editor.add_vertex(vertex.getIndex() - 1, df.Point(vertex.x(), vertex.y(), vertex.z()))
+    ids, nodes, _ = self._model.mesh.getNodes()
+    ids = np.array(ids)-1
+    nodes = np.array(nodes).reshape((-1,3))
+    mesh_editor.init_vertices(len(ids))
+    for n, xyz in zip(ids,nodes):
+        mesh_editor.add_vertex(n, df.Point(xyz))
 
     # get mesh cells
-    mesh_editor.init_cells(
-        reduce(lambda x,y: x+y, map(lambda r: r.tetrahedra.size(), self._model.bindingsGetRegions()))
-    )
+    _, ids, cells = self._model.mesh.getElements(3)
+    ids = np.arange(len(ids[0]))
+    cells = np.array(cells,dtype=np.uintp).reshape((-1,4))-1
+    mesh_editor.init_cells(len(ids))
 
+    # read PhysicalGroup ids for cells
     i = 0
-    for region in self._model.bindingsGetRegions():
-      if len(region.physicals) == 0:
-        region_id = None
-      elif len(region.physicals) == 1:
-        region_id = region.physicals[0]
-      else:
-        raise Exception("Tetrahedra should belong to only one physical domain.")
-
-      for tet in region.tetrahedra:
-        mesh_editor.add_cell(i, np.array([
-          tet.getVertex(0).getIndex() - 1,
-          tet.getVertex(1).getIndex() - 1,
-          tet.getVertex(2).getIndex() - 1,
-          tet.getVertex(3).getIndex() - 1
-        ], dtype=np.uintp))
-
-        if region_id is not None:
-          mesh.domains().set_marker((i, region_id), 3)
-          self._physical_cell_ids.add(region_id)
-
-        i += 1
+    cell_groups = self._model.getPhysicalGroups(3)
+    if len(cell_groups) == 0:
+      for n, ijkl in zip(ids,cells):
+        mesh_editor.add_cell(n, ijkl)
+    else:
+      for g in cell_groups:
+        entities = self._model.getEntitiesForPhysicalGroup(*g)
+        for e in entities:
+          _, ids, cells = self._model.mesh.getElements(3, e)
+          cells = np.array(cells,dtype=np.uintp).reshape((-1,4))-1
+          for ijkl in cells:
+            mesh_editor.add_cell(i, ijkl)
+            mesh.domains().set_marker((i, g[1]), 3)
+            self._physical_cell_ids.add(g[1])
+            i += 1
 
     # finish mesh creation
     mesh_editor.close()
 
     # set facet domains
     mesh.init(0, 2)
-    for face in self._model.bindingsGetFaces():
-      if len(face.physicals) == 0:
-        continue
-      elif len(face.physicals) == 1:
-        face_id = face.physicals[0]
-      else:
-        raise Exception("Facets should belong to only one physical domain.")
-
-      for tri in face.triangles:
-        i = reduce(lambda x,y: x.intersection(y), map(lambda i: set(mesh.topology()(0,2)(tri.getVertex(i).getIndex() - 1)), range(3))).pop()
-        mesh.domains().set_marker((i, face_id), 2)
-        self._physical_face_ids.add(face_id)
-
+    facet_groups = self._model.getPhysicalGroups(2)
+    for g in facet_groups:
+      entities = self._model.getEntitiesForPhysicalGroup(*g)
+      for e in entities:
+        _, ids, cells = self._model.mesh.getElements(2, e)
+        facets = np.array(cells,dtype=np.uintp).reshape((-1,3))-1
+        for ijb in facets:
+          i = reduce(lambda x,y: x.intersection(y), map(lambda i: set(mesh.topology()(0,2)(ijb[i])), range(3))).pop()
+          mesh.domains().set_marker((i, g[1]), 2)
+          self._physical_face_ids.add(g[1])
     return mesh
 
   def print_domain_info(self):
