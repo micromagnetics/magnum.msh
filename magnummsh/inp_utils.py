@@ -50,7 +50,7 @@ class INPReader(object):
       self._need_update = False
       editor = MeshEditor()
       self._mesh = Mesh()
-      editor.open(self._mesh, 3, 3)
+      editor.open(self._mesh, "tetrahedron", 3, 3)
       editor.init_vertices(len(self.nodes))
       editor.init_cells(len(self.elements))
       map(lambda x: editor.add_vertex(x[0]-1, np.array([x[1], x[2], x[3]])), self.nodes)
