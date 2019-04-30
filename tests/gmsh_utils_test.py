@@ -2,6 +2,9 @@ import unittest
 from magnummsh import *
 from magnumfe import *
 
+set_fenics_log_level(40)
+set_log_level(40)
+
 class GmshUtilsTest(unittest.TestCase):
   def test_wrong_filename(self):
     with self.assertRaises(IOError):
@@ -25,13 +28,12 @@ class GmshUtilsTest(unittest.TestCase):
     self.assertEqual(mesh.num_cells(), 921)
     self.assertEqual(set(mesh.domains().markers(2).values()), set({2,3,4}))
     self.assertEqual(set(mesh.domains().markers(3).values()), set({1,2}))
-    File("mesh.xml") << mesh
 
     mesh = Mesh("mesh.xml")
     state = State(mesh, cell_domains={'domain1':1, 'domain2':2}, facet_domains={'face1':2, 'face2':3, 'face3':4})
-    print state.volume('domain2')
-    print state.volume('domain1')
-    print state['domain1'].volume()
+    self.assertAlmostEqual(state.volume(), 259.05740941566467)
+    self.assertAlmostEqual(state['domain1'].volume(), 24.0)
+    self.assertAlmostEqual(state['domain2'].volume(), 235.057409416)
 
 #  def test_shell_simple(self):
 #    reader = GmshReader("mesh/new.msh")
