@@ -52,7 +52,7 @@ class MeshTool(object):
     """
     editor = MeshEditor()
     newmesh = Mesh()
-    editor.open(newmesh, 3, 3)
+    editor.open(newmesh, "tetrahedron", 3, 3)
     if self._mesh is None:
       N = 0
       NE = 0
